@@ -8,15 +8,67 @@
 #define TWOPI 6.2831853
 #define MIN INT_MAX
 #define MAX INT_MIN
+#include <math.h>
+
+float gaussian_pdf_2d(float x, float y, float mean_x, float mean_y, float sigma_x, float sigma_y)
+{
+    float a = 1.0 / (2.0 * M_PI * sigma_x * sigma_y);
+    float b = -1.0 / (2.0 * (sigma_x * sigma_x));
+    float c = -1.0 / (2.0 * (sigma_y * sigma_y));
+    float d = (x - mean_x) * (x - mean_x) * b;
+    float e = (y - mean_y) * (y - mean_y) * c;
+    return a * exp(d + e);
+}
 void l1_normalize(image im)
 {
+    // for (int c = 0; c < 3; c++)
+    // {
+    //     float sum = 0;
+    //     for (int i = 0; i < im.w; i++)
+    //     {
+    //         for (int j = 0; j < im.h; j++)
+    //         {
+    //             sum += get_pixel(im, i, j, c);
+    //         }
+    //     }
+    //     for (int i = 0; i < im.w; i++)
+    //     {
+    //         for (int j = 0; j < im.h; j++)
+    //         {
+    //             set_pixel(im, i, j, c, get_pixel(im, i, j, c) / sum);
+    //         }
+    //     }
+    // }
     for (int i = 0; i < im.w; i++)
     {
         for (int j = 0; j < im.h; j++)
         {
-            set_pixel(im, i, j, 0, get_pixel(im, i, j, 0) / (im.h * im.w));
+            set_pixel(im, i, j, 0, get_pixel(im, i, j, 0) / (im.w * im.h));
         }
     }
+}
+void add_padding(image im, int padding_size)
+{
+    int new_w = im.w + 2 * padding_size;
+    int new_h = im.h + 2 * padding_size;
+    int new_c = im.c;
+    float *new_data = calloc(new_w * new_h * new_c, sizeof(float));
+
+    for (int y = 0; y < im.h; ++y)
+    {
+        for (int x = 0; x < im.w; ++x)
+        {
+            for (int c = 0; c < im.c; ++c)
+            {
+                new_data[c + (x + padding_size) + (y + padding_size) * new_w] =
+                    im.data[c + x + y * im.w];
+            }
+        }
+    }
+    free(im.data);
+    im.data = new_data;
+    im.w = new_w;
+    im.h = new_h;
 }
 
 image make_box_filter(int w)
@@ -34,56 +86,61 @@ image make_box_filter(int w)
     l1_normalize(temp);
     return temp;
 }
-
 image convolve_image(image im, image filter, int preserve)
 {
-    image res = make_image(im.w, im.h, im.c);
+    int out_h = im.h - filter.h + 1; // Height of the output image
+    int out_w = im.w - filter.w + 1; // Width of the output image
+    image ret = make_image(out_w, out_h, im.c);
     if (filter.c == 1 && preserve == 1 && im.c == 3)
     {
-        for (int i = 0; i < im.w; i++)
+        float val = 0;
+        for (int c = 0; c < im.c; c++)
         {
-            for (int j = 0; j < im.h; j++)
+            for (int i = 0; i < out_w; i++)
             {
-                float val1 = 0;
-                for (int k = 0; k < filter.w; k++)
+                for (int j = 0; j < out_h; j++)
                 {
-                    for (int l = 0; l < filter.h; l++)
+                    val = 0;
+                    for (int muli = 0; muli < filter.h; muli++)
                     {
-                        val1 += get_pixel(filter, k, l, 0) * get_pixel(im, i - k, j - k, 0);
-                        // printf("val1: %lf\n", val1);
+                        for (int mulj = 0; mulj < filter.w; mulj++)
+                        {
+                            // if (get_pixel(im, i + muli, j + mulj, c) >= 1)
+                            // printf("pixel: %f\n", get_pixel(im, i + muli, j + mulj, c));
+
+                            val += get_pixel(im, i + muli, j + mulj, c) * get_pixel(filter, muli, mulj, 0);
+                        }
                     }
+                    if (val > 1)
+                        set_pixel(ret, i, j, c, 1);
+                    else if (val < 0)
+                        set_pixel(ret, i, j, c, 0);
+                    else
+                        set_pixel(ret, i, j, c, val);
+                    // printf("val: %f\n", get_pixel(ret, i, j, c));
                 }
-                set_pixel(res, i, j, 0, val1);
-                val1 = 0;
-                for (int k = 0; k < filter.w; k++)
-                {
-                    for (int l = 0; l < filter.h; l++)
-                    {
-                        val1 += get_pixel(filter, k, l, 0) * get_pixel(im, i - k, j - k, 1);
-                        // printf("val1: %lf\n", val1);
-                    }
-                }
-                set_pixel(res, i, j, 1, val1);
-                val1 = 0;
-                for (int k = 0; k < filter.w; k++)
-                {
-                    for (int l = 0; l < filter.h; l++)
-                    {
-                        val1 += get_pixel(filter, k, l, 0) * get_pixel(im, i - k, j - k, 2);
-                        // printf("val1: %lf\n", val1);
-                    }
-                }
-                set_pixel(res, i, j, 2, val1);
             }
         }
     }
-    return res;
+    return ret;
 }
-
 image make_highpass_filter()
 {
     // TODO
-    return make_image(1, 1, 1);
+    image im = make_image(3, 3, 1);
+    set_pixel(im, 0, 0, 0, 0);
+    set_pixel(im, 1, 0, 0, -1);
+    set_pixel(im, 2, 0, 0, 0);
+
+    set_pixel(im, 0, 1, 0, -1);
+    set_pixel(im, 1, 1, 0, 4);
+    set_pixel(im, 2, 1, 0, -1);
+
+    set_pixel(im, 0, 2, 0, 0);
+    set_pixel(im, 1, 2, 0, -1);
+    set_pixel(im, 2, 2, 0, 0);
+
+    return im;
 }
 
 image make_sharpen_filter()
@@ -108,7 +165,20 @@ image make_sharpen_filter()
 image make_emboss_filter()
 {
     // TODO
-    return make_image(1, 1, 1);
+    image im = make_image(3, 3, 1);
+    set_pixel(im, 0, 0, 0, -2);
+    set_pixel(im, 1, 0, 0, -1);
+    set_pixel(im, 2, 0, 0, 0);
+
+    set_pixel(im, 0, 1, 0, -1);
+    set_pixel(im, 1, 1, 0, 1);
+    set_pixel(im, 2, 1, 0, 1);
+
+    set_pixel(im, 0, 2, 0, 0);
+    set_pixel(im, 1, 2, 0, 1);
+    set_pixel(im, 2, 2, 0, 2);
+
+    return im;
 }
 
 // Question 2.2.1: Which of these filters should we use preserve when we run our convolution and which ones should we not? Why?
