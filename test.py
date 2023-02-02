@@ -51,26 +51,30 @@ f = make_emboss_filter()
 blur = convolve_image(im, f, 1)
 save_image(blur, "dog-embossFilter")
 
+im = load_image("data/dog.jpg")
+f = make_gaussian_filter(2)
+blur = convolve_image(im, f, 1)
+save_image(blur, "dog-gauss2")
 
-# Load the image
-img = cv2.imread('data/dog.jpg')
+# # Load the image
+# img = cv2.imread('data/dog.jpg')
 
-# Split the channels
-b, g, r = cv2.split(img)
+# # Split the channels
+# b, g, r = cv2.split(img)
 
-# Define the emboss filter
-kernel = np.array([[-2, -1, 0], [-1, 1, 1], [0, 1, 2]])
+# # Define the emboss filter
+# kernel = np.array([[-2, -1, 0], [-1, 1, 1], [0, 1, 2]])
 
-# Apply the filter to each channel
-b_emboss = cv2.filter2D(b, -1, kernel)
-g_emboss = cv2.filter2D(g, -1, kernel)
-r_emboss = cv2.filter2D(r, -1, kernel)
+# # Apply the filter to each channel
+# b_emboss = cv2.filter2D(b, -1, kernel)
+# g_emboss = cv2.filter2D(g, -1, kernel)
+# r_emboss = cv2.filter2D(r, -1, kernel)
 
-# Merge the channels back together
-img_emboss = cv2.merge([b_emboss, g_emboss, r_emboss])
+# # Merge the channels back together
+# img_emboss = cv2.merge([b_emboss, g_emboss, r_emboss])
 
-# Show the filtered image
-cv2.imshow('Original Image', img)
-cv2.imshow('Emboss Filter', img_emboss)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# # Show the filtered image
+# cv2.imshow('Original Image', img)
+# cv2.imshow('Emboss Filter', img_emboss)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()

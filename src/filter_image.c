@@ -75,7 +75,6 @@ image make_box_filter(int w)
 {
     // TODO
     image temp = make_image(w, w, 1);
-    printf("filter_channel: %d", temp.c);
     for (int i = 0; i < w; i++)
     {
         for (int j = 0; j < w; j++)
@@ -105,19 +104,16 @@ image convolve_image(image im, image filter, int preserve)
                     {
                         for (int mulj = 0; mulj < filter.w; mulj++)
                         {
-                            // if (get_pixel(im, i + muli, j + mulj, c) >= 1)
-                            // printf("pixel: %f\n", get_pixel(im, i + muli, j + mulj, c));
-
                             val += get_pixel(im, i + muli, j + mulj, c) * get_pixel(filter, muli, mulj, 0);
                         }
                     }
+                    // These conditions are for preventing occurence of patches of high frequency elements in the output image
                     if (val > 1)
                         set_pixel(ret, i, j, c, 1);
                     else if (val < 0)
                         set_pixel(ret, i, j, c, 0);
                     else
                         set_pixel(ret, i, j, c, val);
-                    // printf("val: %f\n", get_pixel(ret, i, j, c));
                 }
             }
         }
@@ -190,9 +186,31 @@ image make_emboss_filter()
 image make_gaussian_filter(float sigma)
 {
     // TODO
-    return make_image(1, 1, 1);
-}
+    int size = sigma * 6 + 1;
 
+    image kernel = make_image(size, size, 1);
+    float r, s = 2.0 * sigma * sigma;
+
+    // sum is for normalization
+    float sum = 0.0;
+
+    // generating (size x size) kernel
+    for (int x = -size / 2; x <= size / 2; x++)
+    {
+        for (int y = -size / 2; y <= size / 2; y++)
+        {
+            r = sqrt(x * x + y * y);
+            set_pixel(kernel, x + 2, y + 2, 0, (exp(-(r * r) / s)) / (M_PI * s));
+            sum += get_pixel(kernel, x + 2, y + 2, 0);
+        }
+    }
+
+    // normalising the Kernel
+    for (int i = 0; i < size; ++i)
+        for (int j = 0; j < size; ++j)
+            kernel.data[i + j * kernel.w + 0 * kernel.w * kernel.h] /= sum;
+    return kernel;
+}
 image add_image(image a, image b)
 {
     // TODO
