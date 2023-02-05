@@ -10,15 +10,6 @@
 #define MAX INT_MIN
 #include <math.h>
 
-float gaussian_pdf_2d(float x, float y, float mean_x, float mean_y, float sigma_x, float sigma_y)
-{
-    float a = 1.0 / (2.0 * M_PI * sigma_x * sigma_y);
-    float b = -1.0 / (2.0 * (sigma_x * sigma_x));
-    float c = -1.0 / (2.0 * (sigma_y * sigma_y));
-    float d = (x - mean_x) * (x - mean_x) * b;
-    float e = (y - mean_y) * (y - mean_y) * c;
-    return a * exp(d + e);
-}
 void l1_normalize(image im)
 {
     // for (int c = 0; c < 3; c++)
@@ -46,29 +37,6 @@ void l1_normalize(image im)
             set_pixel(im, i, j, 0, get_pixel(im, i, j, 0) / (im.w * im.h));
         }
     }
-}
-void add_padding(image im, int padding_size)
-{
-    int new_w = im.w + 2 * padding_size;
-    int new_h = im.h + 2 * padding_size;
-    int new_c = im.c;
-    float *new_data = calloc(new_w * new_h * new_c, sizeof(float));
-
-    for (int y = 0; y < im.h; ++y)
-    {
-        for (int x = 0; x < im.w; ++x)
-        {
-            for (int c = 0; c < im.c; ++c)
-            {
-                new_data[c + (x + padding_size) + (y + padding_size) * new_w] =
-                    im.data[c + x + y * im.w];
-            }
-        }
-    }
-    free(im.data);
-    im.data = new_data;
-    im.w = new_w;
-    im.h = new_h;
 }
 
 image make_box_filter(int w)

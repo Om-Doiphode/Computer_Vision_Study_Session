@@ -11,14 +11,8 @@ float *calculate_rgb(float hue_p, float chr, float val, float x);
 
 float get_pixel(image im, int x, int y, int c)
 {
-    if (x < 0)
-        x = 0;
-    if (x > im.w)
-        x = im.w;
-    if (y < 0)
-        y = 0;
-    if (y > im.h)
-        y = im.h;
+    x = check_boundaries(im, x, 0);
+    y = check_boundaries(im, y, 1);
 
     return im.data[x + y * im.w + c * im.w * im.h];
 }
@@ -201,6 +195,19 @@ void hsv_to_rgb(image im)
             set_pixel(im, x, y, 2, rgb[2]);
         }
     }
+}
+// float* calculate_rgb(float hue_p, float chr,float val ,float x)
+
+int check_boundaries(image im, int var, int flag)
+{
+    if (var < 0)
+        return 0;
+    /* flag = 0 check x boundary */
+    else if (flag == 0 && var > im.w)
+        var = im.w;
+    else if (flag == 1 && var > im.h)
+        var = im.h;
+    return var;
 }
 
 float calculate_hue(float r, float g, float b, float val, float chr)
