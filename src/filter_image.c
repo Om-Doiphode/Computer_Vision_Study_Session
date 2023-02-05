@@ -55,23 +55,26 @@ image make_box_filter(int w)
 }
 image convolve_image(image im, image filter, int preserve)
 {
-    int out_h = im.h - filter.h + 1; // Height of the output image
+    int out_h = im.h - filter.h + 1; // Height of the o66utput image
     int out_w = im.w - filter.w + 1; // Width of the output image
-    image ret = make_image(out_w, out_h, im.c);
+    int new_c = (preserve) ? im.c : 1;
     if (filter.c == 1 && preserve == 1 && im.c == 3)
     {
         float val = 0;
+        image ret = make_image(im.w, im.h, im.c);
         for (int c = 0; c < im.c; c++)
         {
-            for (int i = 0; i < out_w; i++)
+            for (int i = 0; i < im.w; i++)
             {
-                for (int j = 0; j < out_h; j++)
+                for (int j = 0; j < im.h; j++)
                 {
                     val = 0;
                     for (int muli = 0; muli < filter.h; muli++)
                     {
                         for (int mulj = 0; mulj < filter.w; mulj++)
                         {
+                            // if (i == 767)
+                            //     printf("i: %d, j: %d, muli: %d, mulj: %d, c: %d\n", i, j, muli, mulj, c);
                             val += get_pixel(im, i + muli, j + mulj, c) * get_pixel(filter, muli, mulj, 0);
                         }
                     }
@@ -85,8 +88,35 @@ image convolve_image(image im, image filter, int preserve)
                 }
             }
         }
+        return ret;
     }
-    return ret;
+    if (preserve == 0)
+    {
+        float val = 0;
+        image ret = make_image(im.w, im.h, 1);
+        for (int i = 0; i < im.w; i++)
+        {
+            for (int j = 0; j < im.h; j++)
+            {
+                val = 0;
+                for (int muli = 0; muli < filter.h; muli++)
+                {
+                    for (int mulj = 0; mulj < filter.w; mulj++)
+                    {
+                        val += get_pixel(im, i + muli, j + mulj, 0) * get_pixel(filter, muli, mulj, 0);
+                    }
+                }
+                // These conditions are for preventing occurence of patches of high frequency elements in the output image
+                if (val > 1)
+                    set_pixel(ret, i, j, 0, 1);
+                else if (val < 0)
+                    set_pixel(ret, i, j, 0, 0);
+                else
+                    set_pixel(ret, i, j, 0, val);
+            }
+        }
+        return ret;
+    }
 }
 image make_highpass_filter()
 {
@@ -310,17 +340,59 @@ void feature_normalize(image im)
         }
     }
 }
-
+image RGB2GRAY(image im)
+{
+    image temp = make_image(im.w, im.h, 1);
+    for (int i = 0; i < im.w; i++)
+    {
+        for (int j = 0; j < im.h; j++)
+        {
+            float val = get_pixel(im, i, j, 0) * 0.299 +
+                        get_pixel(im, i, j, 1) * 0.587 +
+                        get_pixel(im, i, j, 2) * 0.114;
+            set_pixel(temp, i, j, 0, val);
+        }
+    }
+    return temp;
+}
 image *sobel_image(image im)
 {
     // TODO
-    // return calloc(2, sizeof(image));
+    image Gx = make_image(im.w, im.h, 1);
+    image Gy = make_image(im.w, im.h, 1);
+    image G = make_image(im.w, im.h, 1);
+    image theta = make_image(im.w, im.h, 1);
+
+    image *finalImage = calloc(2, sizeof(image));
+    image grayImage = RGB2GRAY(im);
+
+    Gx = convolve_image(grayImage, make_gx_filter(), 0);
+    Gy = convolve_image(grayImage, make_gy_filter(), 0);
+    for (int i = 0; i < im.w; i++)
+    {
+        for (int j = 0; j < im.h; j++)
+        {
+            float gx_squared = pow(get_pixel(Gx, i, j, 0), 2);
+            float gy_squared = pow(get_pixel(Gy, i, j, 0), 2);
+            float val = sqrt(gx_squared + gy_squared);
+            set_pixel(G, i, j, 0, val);
+            float angle = atan2f(get_pixel(Gy, i, j, 0), get_pixel(Gx, i, j, 0));
+            set_pixel(theta, i, j, 0, angle);
+        }
+    }
+    finalImage[0] = G;
+    finalImage[1] = theta;
+
+    return finalImage;
+}
+
+image colorize_sobel(image im)
+{
+    // TODO
     image Gx = make_image(im.w, im.h, im.c);
     image Gy = make_image(im.w, im.h, im.c);
     image G = make_image(im.w, im.h, im.c);
     image theta = make_image(im.w, im.h, im.c);
-
-    image *finalImage = calloc(2, sizeof(image));
 
     Gx = convolve_image(im, make_gx_filter(), 1);
     Gy = convolve_image(im, make_gy_filter(), 1);
@@ -340,14 +412,6 @@ image *sobel_image(image im)
             }
         }
     }
-    finalImage[0] = G;
-    finalImage[1] = theta;
 
-    return finalImage;
-}
-
-image colorize_sobel(image im)
-{
-    // TODO
-    return make_image(1, 1, 1);
+    return G;
 }

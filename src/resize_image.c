@@ -28,6 +28,29 @@ image nn_resize(image im, int w, int h)
     return temp;
 }
 
+// image nn_resize(image im, int w, int h)
+// {
+//     // TODO Fill in (also fix that first line)
+//     image new_im;
+//     new_im = make_image(w, h, im.c);
+//     float h_ratio = (float)h / (float)im.h;
+//     float w_ratio = (float)w / (float)im.w;
+//     for (int i = 0; i < im.c; i++)
+//     {
+//         for (int j = 0; j < h; j++)
+//         {
+//             for (int k = 0; k < w; k++)
+//             {
+//                 float new_value = nn_interpolate(im, (float)k / w_ratio, (float)j / h_ratio, i);
+//                 // new_im.data[i * w * h + j * w + k] = new_value;
+//                 set_pixel(new_im, k, j, i, new_value);
+//             }
+//         }
+//     }
+//     return new_im;
+//     // return make_image(1,1,1);
+// }
+
 float bilinear_interpolate(image im, float x, float y, int c)
 {
     // TODO

@@ -147,57 +147,70 @@ void rgb_to_hsv(image im)
         }
     }
 }
-
 void hsv_to_rgb(image im)
 {
-    /*The function isn't perfect!
-    My transform function saturates
-    image slightly more than the one
-    in the course. */
-
-    int x;
-    int y;
-    float h_prime;
-    float hue;
-    float sat; // saturation
-    float val; // value
-    float chr; // chroma
-    float z;
-
-    float *rgb;
-
-    rgb = (float *)malloc(sizeof(float) * 3);
-
-    for (x = 0; x < im.w; x++)
+    float H, S, V, H_, C, X, R1 = 0, G1 = 0, B1 = 0, m;
+    for (int i = 0; i < im.w; i++)
     {
-        for (y = 0; y < im.h; y++)
+        for (int j = 0; j < im.h; j++)
         {
-            /*get pixel values for 3 ch's*/
-            hue = get_pixel(im, x, y, 0);
-            sat = get_pixel(im, x, y, 1);
-            val = get_pixel(im, x, y, 2);
+            H = get_pixel(im, i, j, 0);
+            S = get_pixel(im, i, j, 1);
+            V = get_pixel(im, i, j, 2);
 
-            /*calculate chr, val and hue*/
+            C = V * S;
+            H_ = H * (float)6;
+            X = C * (1 - fabs(fmod(H_, (float)2) - 1));
+            if (H_ == 0)
+            {
+                R1 = 0;
+                G1 = 0;
+                B1 = 0;
+            }
+            else if (H_ > 0 && H_ <= 1)
+            {
+                R1 = C;
+                G1 = X;
+                B1 = 0;
+            }
+            else if (H_ > 1 && H_ <= 2)
+            {
+                R1 = X;
+                G1 = C;
+                B1 = 0;
+            }
+            else if (H_ > 2 && H_ <= 3)
+            {
+                R1 = 0;
+                G1 = C;
+                B1 = X;
+            }
+            else if (H_ > 3 && H_ <= 4)
+            {
+                R1 = 0;
+                G1 = X;
+                B1 = C;
+            }
+            else if (H_ > 4 && H_ <= 5)
+            {
+                R1 = X;
+                G1 = 0;
+                B1 = C;
+            }
+            else if (H_ > 5 && H_ <= 6)
+            {
+                R1 = C;
+                G1 = 0;
+                B1 = X;
+            }
 
-            chr = (1 - fabs(2 * val - 1)) * sat;
-            h_prime = hue * (float)6;
-            z = chr * (1 - fabs(fmod(h_prime, (float)2) - 1));
-
-            /*calculate r, g and b*/
-
-            rgb = calculate_rgb(h_prime, chr, val, z);
-
-            /* store (r,g,b) in the same image,
-            replace  (h,s,v) by (r, g, b)   */
-
-            set_pixel(im, x, y, 0, rgb[0]);
-            set_pixel(im, x, y, 1, rgb[1]);
-            set_pixel(im, x, y, 2, rgb[2]);
+            m = (V - C);
+            set_pixel(im, i, j, 0, R1 + m);
+            set_pixel(im, i, j, 1, G1 + m);
+            set_pixel(im, i, j, 2, B1 + m);
         }
     }
 }
-// float* calculate_rgb(float hue_p, float chr,float val ,float x)
-
 int check_boundaries(image im, int var, int flag)
 {
     if (var < 0)
@@ -227,63 +240,4 @@ float calculate_hue(float r, float g, float b, float val, float chr)
         hue = (g - b) / chr;
 
     return ((hue < 0) ? hue / 6 + 1 : hue / 6);
-}
-
-float *calculate_rgb(float hue_p, float chr, float val, float x)
-{
-    float r1;
-    float g1;
-    float b1;
-    float min;
-    float *rgb;
-
-    r1 = g1 = b1 = 0;
-    rgb = (float *)malloc(sizeof(float) * 3);
-
-    if (hue_p == 0)
-        r1 = g1 = b1 = 0;
-    else if (0 < hue_p && hue_p <= 1)
-    {
-        r1 = chr;
-        g1 = x;
-        b1 = 0;
-    }
-    else if (1 < hue_p && hue_p <= 2)
-    {
-        r1 = x;
-        g1 = chr;
-        b1 = 0;
-    }
-    else if (2 < hue_p && hue_p <= 3)
-    {
-        r1 = 0;
-        g1 = chr;
-        b1 = x;
-    }
-    else if (3 < hue_p && hue_p <= 4)
-    {
-        r1 = 0;
-        g1 = x;
-        b1 = chr;
-    }
-    else if (4 < hue_p && hue_p <= 5)
-    {
-        r1 = x;
-        g1 = 0;
-        b1 = chr;
-    }
-    else if (5 < hue_p && hue_p <= 6)
-    {
-        r1 = chr;
-        g1 = 0;
-        b1 = x;
-    }
-
-    min = val - chr / (float)2;
-
-    rgb[0] = r1 + min;
-    rgb[1] = g1 + min;
-    rgb[2] = b1 + min;
-
-    return rgb;
 }
