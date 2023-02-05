@@ -182,13 +182,35 @@ image make_gaussian_filter(float sigma)
 image add_image(image a, image b)
 {
     // TODO
-    return make_image(1, 1, 1);
+    image temp = make_image(a.w, a.h, a.c);
+    for (int c = 0; c < a.c; c++)
+    {
+        for (int i = 0; i < a.w; i++)
+        {
+            for (int j = 0; j < a.h; j++)
+            {
+                set_pixel(temp, i, j, c, (get_pixel(a, i, j, c) + get_pixel(b, i, j, c)));
+            }
+        }
+    }
+    return temp;
 }
 
 image sub_image(image a, image b)
 {
     // TODO
-    return make_image(1, 1, 1);
+    image temp = make_image(a.w, a.h, a.c);
+    for (int c = 0; c < a.c; c++)
+    {
+        for (int i = 0; i < a.w; i++)
+        {
+            for (int j = 0; j < a.h; j++)
+            {
+                set_pixel(temp, i, j, c, (get_pixel(a, i, j, c) - get_pixel(b, i, j, c)));
+            }
+        }
+    }
+    return temp;
 }
 
 image make_gx_filter()
@@ -232,12 +254,96 @@ image make_gy_filter()
 void feature_normalize(image im)
 {
     // TODO
+    float r_min = INT_MAX, r_max = INT_MIN, g_min = INT_MAX, g_max = INT_MIN, b_min = INT_MAX, b_max = INT_MIN;
+    for (int c = 0; c < im.c; c++)
+    {
+        for (int i = 0; i < im.w; i++)
+        {
+            for (int j = 0; j < im.h; j++)
+            {
+                if (c == 0)
+                {
+                    if (get_pixel(im, i, j, c) < r_min)
+                        r_min = get_pixel(im, i, j, c);
+                    if (get_pixel(im, i, j, c) > r_max)
+                        r_max = get_pixel(im, i, j, c);
+                }
+                if (c == 1)
+                {
+                    if (get_pixel(im, i, j, c) < g_min)
+                        g_min = get_pixel(im, i, j, c);
+                    if (get_pixel(im, i, j, c) > g_max)
+                        g_max = get_pixel(im, i, j, c);
+                }
+                if (c == 2)
+                {
+                    if (get_pixel(im, i, j, c) < b_min)
+                        b_min = get_pixel(im, i, j, c);
+                    if (get_pixel(im, i, j, c) > b_max)
+                        b_max = get_pixel(im, i, j, c);
+                }
+            }
+        }
+    }
+    for (int c = 0; c < im.c; c++)
+    {
+        for (int i = 0; i < im.w; i++)
+        {
+            for (int j = 0; j < im.h; j++)
+            {
+                if (c == 0)
+                {
+                    float val = (float)(get_pixel(im, i, j, c) - r_min) / (r_max - r_min);
+                    set_pixel(im, i, j, c, val);
+                }
+                if (c == 1)
+                {
+                    float val = (float)(get_pixel(im, i, j, c) - g_min) / (g_max - g_min);
+                    set_pixel(im, i, j, c, val);
+                }
+                if (c == 2)
+                {
+                    float val = (float)(get_pixel(im, i, j, c) - b_min) / (b_max - b_min);
+                    set_pixel(im, i, j, c, val);
+                }
+            }
+        }
+    }
 }
 
 image *sobel_image(image im)
 {
     // TODO
-    return calloc(2, sizeof(image));
+    // return calloc(2, sizeof(image));
+    image Gx = make_image(im.w, im.h, im.c);
+    image Gy = make_image(im.w, im.h, im.c);
+    image G = make_image(im.w, im.h, im.c);
+    image theta = make_image(im.w, im.h, im.c);
+
+    image *finalImage = calloc(2, sizeof(image));
+
+    Gx = convolve_image(im, make_gx_filter(), 1);
+    Gy = convolve_image(im, make_gy_filter(), 1);
+
+    for (int c = 0; c < im.c; c++)
+    {
+        for (int i = 0; i < im.w; i++)
+        {
+            for (int j = 0; j < im.h; j++)
+            {
+                float gx_squared = pow(get_pixel(Gx, i, j, c), 2);
+                float gy_squared = pow(get_pixel(Gy, i, j, c), 2);
+                float val = sqrt(gx_squared + gy_squared);
+                set_pixel(G, i, j, c, val);
+                float angle = atan2f(get_pixel(Gy, i, j, c), get_pixel(Gx, i, j, c));
+                set_pixel(theta, i, j, c, angle);
+            }
+        }
+    }
+    finalImage[0] = G;
+    finalImage[1] = theta;
+
+    return finalImage;
 }
 
 image colorize_sobel(image im)
